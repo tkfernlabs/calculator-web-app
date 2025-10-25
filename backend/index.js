@@ -1,14 +1,29 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Rate limiting: max 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Add request logging
+app.use(morgan('combined'));
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 // Database connection
 const pool = new Pool({
@@ -32,29 +47,35 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Calculator API is running' });
 });
 
+// Helper function to round results and avoid floating-point precision issues
+const roundResult = (num) => {
+  // Round to 10 decimal places
+  return Math.round(num * 10000000000) / 10000000000;
+};
+
 // Calculator operations
 const operations = {
-  add: (a, b) => a + b,
-  subtract: (a, b) => a - b,
-  multiply: (a, b) => a * b,
+  add: (a, b) => roundResult(a + b),
+  subtract: (a, b) => roundResult(a - b),
+  multiply: (a, b) => roundResult(a * b),
   divide: (a, b) => {
     if (b === 0) {
       throw new Error('Division by zero');
     }
-    return a / b;
+    return roundResult(a / b);
   },
   modulo: (a, b) => {
     if (b === 0) {
       throw new Error('Modulo by zero');
     }
-    return a % b;
+    return roundResult(a % b);
   },
-  power: (a, b) => Math.pow(a, b),
+  power: (a, b) => roundResult(Math.pow(a, b)),
   sqrt: (a) => {
     if (a < 0) {
       throw new Error('Square root of negative number');
     }
-    return Math.sqrt(a);
+    return roundResult(Math.sqrt(a));
   }
 };
 

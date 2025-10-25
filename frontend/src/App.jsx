@@ -35,6 +35,20 @@ function App() {
     return Math.round(num * 10000000000) / 10000000000;
   };
 
+  // Map operation names to mathematical symbols
+  const getOperationSymbol = (op) => {
+    const symbols = {
+      'add': '+',
+      'subtract': '−',
+      'multiply': '×',
+      'divide': '÷',
+      'modulo': 'mod',
+      'power': '^',
+      'sqrt': '√'
+    };
+    return symbols[op] || op;
+  };
+
   const performCalculation = async (op, val1, val2) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/calculate`, {
@@ -66,7 +80,8 @@ function App() {
       }
     } catch (err) {
       setError(err.message);
-      setTimeout(() => setError(null), 3000);
+      // Increased timeout from 3s to 6s for better visibility
+      setTimeout(() => setError(null), 6000);
       throw err;
     }
   };
@@ -178,7 +193,7 @@ function App() {
           <div className="display-section">
             {error && <div className="error-message">{error}</div>}
             <div className="display">{display}</div>
-            {operation && <div className="operation-indicator">{operand1} {operation}</div>}
+            {operation && <div className="operation-indicator">{operand1} {getOperationSymbol(operation)}</div>}
           </div>
           
           <div className="button-grid">
@@ -236,7 +251,7 @@ function App() {
                 history.map((item, index) => (
                   <div key={index} className="history-item">
                     <span className="history-operation">
-                      {item.operand1} {item.operation} {item.operand2 !== null ? item.operand2 : ''}
+                      {item.operand1} {getOperationSymbol(item.operation)} {item.operand2 !== null ? item.operand2 : ''}
                     </span>
                     <span className="history-result">= {roundResult(item.result)}</span>
                     <span className="history-time">
